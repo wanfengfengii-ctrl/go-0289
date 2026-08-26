@@ -320,6 +320,8 @@ func (e *Engine) GetWells(batchID string) ([]assay.Well, error) {
 
 // ListBatches returns the ids of all locked batches in stable order.
 func (e *Engine) ListBatches() []string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	ids := make([]string, 0, len(e.batches))
 	for id := range e.batches {
 		ids = append(ids, id)
