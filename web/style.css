@@ -1,0 +1,22 @@
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+  line-height: 1.5;
+}
+header h1 {
+  margin-bottom: 0.25rem;
+}
+section {
+  margin-top: 1.5rem;
+}
+button {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+#status {
+  color: #555;
+}
