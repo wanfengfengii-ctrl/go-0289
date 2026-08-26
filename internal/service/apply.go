@@ -108,10 +108,17 @@ func (e *Engine) ingestChunkApply(batchID, opID string, chunk assay.CurveChunk, 
 		return "", assay.ErrStaleGeneration
 	}
 	existing := b.Chunks[chunk.RunID]
-	b.Chunks[chunk.RunID] = append(existing, chunk)
-	if err := assay.ValidateChunkPrefix(b.Chunks[chunk.RunID]); err != nil {
+	// Validate before mutating state: a rejected chunk (gap, overlap, stale
+	// generation, wrong order) must not change the cursor, the complete flag
+	// or the idempotency log. Append to a copy so the run's stored chunks stay
+	// untouched on failure.
+	candidate := make([]assay.CurveChunk, 0, len(existing)+1)
+	candidate = append(candidate, existing...)
+	candidate = append(candidate, chunk)
+	if err := assay.ValidateChunkPrefix(candidate); err != nil {
 		return "", err
 	}
+	b.Chunks[chunk.RunID] = candidate
 	b.ChunkOps[opID] = chunkRecord{Txn: seq, Digest: assay.ChunkContentDigest(chunk)}
 	return txnString(seq), nil
 }
