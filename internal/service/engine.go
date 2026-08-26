@@ -41,6 +41,7 @@ var (
 	ErrBatchLocked    = errors.New("batch already locked")
 	ErrBatchNotLocked = errors.New("batch not locked")
 	ErrRunNotFound    = errors.New("run not found")
+	ErrRunReused      = errors.New("run id already in use")
 )
 
 // Engine is the thread-safe application service.

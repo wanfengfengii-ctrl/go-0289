@@ -76,6 +76,9 @@ func (e *Engine) loadApply(batchID string, req assay.LoadRequest, seq int64) (st
 }
 
 // createRunApply creates an instrument run for a well at the current generation.
+// A run id is bound to a single (well, generation): an identical request is an
+// idempotent no-op, while reuse for a different well or generation is rejected
+// so a run id can never claim a curve that belongs to another well.
 func (e *Engine) createRunApply(batchID, runID string, well protocol.WellRef) error {
 	b := e.batches[batchID]
 	if b == nil {
@@ -86,6 +89,12 @@ func (e *Engine) createRunApply(batchID, runID string, well protocol.WellRef) er
 	}
 	if _, ok := b.wellByKey(well.Key()); !ok {
 		return ErrWellNotFound
+	}
+	if existing, ok := b.Runs[runID]; ok {
+		if existing.Well == well && existing.Generation == b.Generation {
+			return nil
+		}
+		return ErrRunReused
 	}
 	b.Runs[runID] = assay.InstrumentRun{ID: runID, Well: well, Generation: b.Generation}
 	return nil

@@ -80,6 +80,8 @@ func mapError(err error) *Error {
 		return NewError(CodeBatchNotLocked, "batch not locked")
 	case errors.Is(err, service.ErrRunNotFound):
 		return NewError(CodeRunNotFound, "run not found")
+	case errors.Is(err, service.ErrRunReused):
+		return NewError(CodeRunReused, "run id already in use")
 	case errors.Is(err, service.ErrWellNotFound):
 		return NewError(CodeWellNotFound, "well not found")
 	case errors.Is(err, service.ErrNotSampleWell):

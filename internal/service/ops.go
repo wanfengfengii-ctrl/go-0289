@@ -139,9 +139,23 @@ func (e *Engine) Load(batchID string, req assay.LoadRequest) (string, error) {
 }
 
 // CreateRun creates an instrument run for a well at the current generation.
+// A run id is permanently bound to the (well, generation) it was first created
+// for: an identical request is an idempotent retry that returns the same run,
+// while reusing the same id for a different well or generation is rejected so a
+// run id can never steal the curve that belongs to another well.
 func (e *Engine) CreateRun(batchID, runID string, well protocol.WellRef) (assay.InstrumentRun, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	b := e.batches[batchID]
+	if b == nil {
+		return assay.InstrumentRun{}, ErrBatchNotFound
+	}
+	if existing, ok := b.Runs[runID]; ok {
+		if existing.Well == well && existing.Generation == b.Generation {
+			return existing, nil
+		}
+		return assay.InstrumentRun{}, ErrRunReused
+	}
 	seq, err := e.transact(evRunCreate, mustMarshal(runEvent{BatchID: batchID, RunID: runID, Well: well}), func(int64) error {
 		return e.createRunApply(batchID, runID, well)
 	})

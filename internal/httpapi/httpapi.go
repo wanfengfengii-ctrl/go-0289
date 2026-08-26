@@ -48,6 +48,7 @@ const (
 	CodeDivideByZero        = "divide_by_zero"
 	CodeRunMismatch         = "run_mismatch"
 	CodeRunNotFound         = "run_not_found"
+	CodeRunReused           = "run_reused"
 	CodeBatchNotFound       = "batch_not_found"
 	CodeBatchLocked         = "batch_locked"
 	CodeBatchNotLocked      = "batch_not_locked"
