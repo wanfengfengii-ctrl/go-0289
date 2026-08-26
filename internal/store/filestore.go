@@ -119,10 +119,20 @@ func (s *FileStore) readLog() error {
 
 		kind := make([]byte, kindLen)
 		if _, err := io.ReadFull(s.f, kind); err != nil {
+			// A truncated kind segment can only belong to an uncommitted
+			// record: a committed record's full frame is durable before its
+			// commit flag is ever set. Drop the partial tail like the header
+			// case instead of failing recovery.
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				break
+			}
 			return err
 		}
 		payload := make([]byte, payloadLen)
 		if _, err := io.ReadFull(s.f, payload); err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				break
+			}
 			return err
 		}
 		ev := Event{
