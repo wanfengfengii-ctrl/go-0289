@@ -126,15 +126,30 @@ func (e *Engine) deserialize(data []byte) error {
 
 // transact runs one mutation under the (already held) engine lock: append,
 // apply, commit, snapshot.
+//
+// A transaction must not become visible in the running process until it is
+// durably committed. The apply step mutates the live in-memory state directly,
+// so if apply or Commit fails we roll the in-memory state back to the
+// pre-transaction checkpoint — mirroring the crash-recovery guarantee that an
+// uncommitted tail is dropped. Once Commit succeeds the transaction is durable
+// (and is replayed from the log on the next restart whenever the snapshot
+// lags), so a later snapshot failure must not roll back: doing so would hide a
+// committed transaction.
 func (e *Engine) transact(kind string, payload []byte, apply func(seq int64) error) (int64, error) {
 	ev, err := e.store.Append(kind, payload)
 	if err != nil {
 		return 0, err
 	}
+	checkpoint, err := e.serialize()
+	if err != nil {
+		return 0, err
+	}
 	if err := apply(ev.Seq); err != nil {
+		e.rollback(checkpoint)
 		return 0, err
 	}
 	if err := e.store.Commit(ev.Seq); err != nil {
+		e.rollback(checkpoint)
 		return 0, err
 	}
 	data, err := e.serialize()
@@ -145,6 +160,13 @@ func (e *Engine) transact(kind string, payload []byte, apply func(seq int64) err
 		return 0, err
 	}
 	return ev.Seq, nil
+}
+
+// rollback discards any in-memory mutation from a transaction that did not
+// durably commit, restoring the pre-transaction visible state. It is infallible
+// for a checkpoint produced by serialize.
+func (e *Engine) rollback(checkpoint []byte) {
+	_ = e.deserialize(checkpoint)
 }
 
 // applyEvent re-applies a committed event during replay (no persistence).
