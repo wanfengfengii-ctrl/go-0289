@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>环境脱氧核糖核酸扩增批次污染判定</title>
+</head>
+<body>
+<h1>环境脱氧核糖核酸扩增批次污染判定</h1>
+<p id="status">正在加载后端状态…</p>
+<pre id="payload"></pre>
+<script>
+fetch('/api/v1/health')
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    document.getElementById('status').textContent = '后端已连接';
+    document.getElementById('payload').textContent = JSON.stringify(d, null, 2);
+  })
+  .catch(function (e) {
+    document.getElementById('status').textContent = '后端不可达: ' + e;
+  });
+</script>
+</body>
+</html>
