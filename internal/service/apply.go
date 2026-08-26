@@ -190,8 +190,16 @@ func (e *Engine) retestApply(batchID, sourceDigest string, generation int) error
 	if _, exists := verdict.FindRetest(b.Retests, b.Generation, sourceDigest); exists {
 		return verdict.ErrRetestConflict
 	}
-	b.Retests = append(b.Retests, verdict.NewGeneration(generation, sourceDigest, b.Contam.Closure))
+	gen := verdict.NewGeneration(generation, sourceDigest, b.Contam.Closure)
+	b.Retests = append(b.Retests, gen)
 	b.Generation = generation
+	// A retest reopens only the affected wells, so their prior-generation
+	// interpretations no longer apply to the current generation. Drop them
+	// so the batch cannot be released until each reopened well has been
+	// re-run and re-interpreted at the new generation (rule 8).
+	for _, w := range gen.ReopenedWells {
+		delete(b.Interps, w.Key())
+	}
 	return nil
 }
 
