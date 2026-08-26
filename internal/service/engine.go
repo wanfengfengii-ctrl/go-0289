@@ -124,17 +124,20 @@ func (e *Engine) deserialize(data []byte) error {
 	return nil
 }
 
-// transact runs one mutation under the (already held) engine lock: append,
-// apply, commit, snapshot.
+// transact runs one mutation under the (already held) engine lock. The domain
+// rule is applied *before* the durable commit so that a rejected operation
+// (for example a chunk whose generation is stale) never publishes a committed
+// record. A failed apply leaves only an uncommitted tail, which recovery
+// drops, so a single rejected upload cannot poison the whole batch store.
 func (e *Engine) transact(kind string, payload []byte, apply func(seq int64) error) (int64, error) {
 	ev, err := e.store.Append(kind, payload)
 	if err != nil {
 		return 0, err
 	}
-	if err := e.store.Commit(ev.Seq); err != nil {
+	if err := apply(ev.Seq); err != nil {
 		return 0, err
 	}
-	if err := apply(ev.Seq); err != nil {
+	if err := e.store.Commit(ev.Seq); err != nil {
 		return 0, err
 	}
 	data, err := e.serialize()
