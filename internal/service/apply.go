@@ -217,7 +217,6 @@ func (e *Engine) decideApply(batchID string, decision verdict.FinalDecision) err
 	if b.Final != nil {
 		return verdict.ErrDecisionExists
 	}
-	b.Final = &decision
 	digest := b.evidenceDigest()
 	if !verdict.HasQuorum(b.Reviews, digest) {
 		return ErrInsufficientReview
@@ -227,7 +226,12 @@ func (e *Engine) decideApply(batchID string, decision verdict.FinalDecision) err
 			return verdict.ErrNotReady
 		}
 	}
+	// Persist the decision only after every guard has passed. Mutating
+	// b.Final before the readiness checks would leave a rejected release
+	// request etched into memory, so a later void attempt would see a
+	// phantom terminal decision and fail with ErrDecisionExists.
 	decision.Digest = digest
+	b.Final = &decision
 	return nil
 }
 
