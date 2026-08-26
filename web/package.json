@@ -1,0 +1,11 @@
+{
+  "name": "edna-contamination-verdict-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Frontend page for the environmental DNA contamination verdict service.",
+  "scripts": {
+    "build": "node build.mjs",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  }
+}
