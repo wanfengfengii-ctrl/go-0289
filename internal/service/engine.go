@@ -151,11 +151,13 @@ func (e *Engine) transact(kind string, payload []byte, apply func(seq int64) err
 func (e *Engine) applyEvent(ev store.Event) error {
 	switch ev.Kind {
 	case evProtocolCreate:
-		var spec protocol.ProtocolSpec
-		if err := json.Unmarshal(ev.Payload, &spec); err != nil {
+		var p struct {
+			Spec protocol.ProtocolSpec `json:"spec"`
+		}
+		if err := json.Unmarshal(ev.Payload, &p); err != nil {
 			return err
 		}
-		return e.createProtocolApply(spec)
+		return e.createProtocolApply(p.Spec)
 	case evBatchLock:
 		var p struct {
 			BatchID    string `json:"batch_id"`
