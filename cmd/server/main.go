@@ -20,7 +20,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("open store: %v", err)
 	}
-	st.Close()
+	// The store stays open for the engine's lifetime: it is the durable handle
+	// every transaction writes through. Closing it here would leave the engine
+	// with a dead file handle whose first write fails (health still passes
+	// because restore and the health check never touch the file). Close on
+	// shutdown instead.
+	defer st.Close()
 
 	engine, err := service.NewEngine(st)
 	if err != nil {
